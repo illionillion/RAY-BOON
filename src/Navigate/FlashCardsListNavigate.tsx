@@ -4,8 +4,25 @@ import StackParamList from '../StackParamList';
 import { FlashCardsListCon } from '../screens/FlashCardsList/UI/FlashCardsListCon';
 import { FlashCardsViewCon } from '../screens/FlashCardsView/UI/FlashCardsViewCon';
 import { SlideCon } from '../screens/Slide/UI/SlideCon';
+import { Button } from 'react-native';
+import { FlashCardsDataState, FlashCardsDef } from '../atom/FlashCardsDataState';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
 
 export const FlashCardsListNavigate: FC = () => {
+	var data = useRecoilValue<FlashCardsDef[]>(FlashCardsDataState);
+	const setData = useSetRecoilState(FlashCardsDataState);
+
+	const handleSort = () => {
+		data = [...data].sort((a, b) => {
+			if (a.name < b.name) {
+				return -1;
+			} else {
+				return 1;
+			}
+		});
+		setData(data);
+	}
+
 	const Stack = createNativeStackNavigator();
 
 	return (
@@ -25,7 +42,12 @@ export const FlashCardsListNavigate: FC = () => {
 			<Stack.Screen
 				name="FlashCardsList"
 				component={FlashCardsListCon}
-				options={{ title: '単語帳一覧' }}
+				options={{
+					title: '単語帳一覧',
+					headerRight: () => (
+						<Button title='名前順' onPress={() => handleSort()} color={'white'} />
+					)
+				}}
 			/>
 			<Stack.Screen
 				name="FlashCardsView"
