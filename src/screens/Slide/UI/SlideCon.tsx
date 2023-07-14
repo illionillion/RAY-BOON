@@ -31,6 +31,7 @@ export const SlideCon: FC<SlideConProps> = ({ navigation, route }) => {
     if (page >= 0 && page <= pageTotal - 1) {
       if (isSpeaking) handleSpeechStop();
       setPage(page);
+      setIsFront(true);
     }
   };
 
@@ -52,7 +53,7 @@ export const SlideCon: FC<SlideConProps> = ({ navigation, route }) => {
       });
     }
   };
-  
+
   useEffect(() => {
     const blurUnsubscribe = navigation.addListener('blur', handleSpeechStop);
     const beforeRemoveUnsubscribe = navigation.addListener('beforeRemove', handleSpeechStop);
@@ -64,13 +65,13 @@ export const SlideCon: FC<SlideConProps> = ({ navigation, route }) => {
 
   return (
     <SlidePre
-      handleGoBack={handleGoBack}
       word_list={data}
       page={page}
-      handlePageChange={handlePageChange}
       isFront={isFront}
-      handleFlip={handleFlip}
       isSpeaking={isSpeaking}
+      handleGoBack={handleGoBack}
+      handleFlip={handleFlip}
+      handlePageChange={handlePageChange}
       handlePressSpeaker={handlePressSpeaker}
     />
   );
