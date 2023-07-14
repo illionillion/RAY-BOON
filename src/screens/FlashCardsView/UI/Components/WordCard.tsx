@@ -4,6 +4,7 @@ import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-nativ
 import Toast from 'react-native-toast-message';
 import { useRecoilValue } from 'recoil';
 import { APIKeyState } from '../../../../atom/APIKeyState';
+import { SentenceDiffState } from '../../../../atom/SentenceDiffState';
 import { WordDef } from '../../../../atom/FlashCardsDataState';
 import { generateExample, generateExampleReturn } from '../../../../lib/createExample';
 
@@ -25,6 +26,7 @@ export const WordCard: FC<WordCardProps> = ({
 	const [wordExamplePreview, setWordExamplePreview] = useState<string>(example);
 	const [loading, setLoading] = useState<boolean>(false);
 	const apiKey = useRecoilValue(APIKeyState);
+	const sentenceDiff = useRecoilValue(SentenceDiffState);
 	const handleNameChanged = (text: string) => {
 		setWordName(text);
 	};
@@ -82,6 +84,7 @@ export const WordCard: FC<WordCardProps> = ({
 			wordLang: wordLang,
 			wordName: wordName,
 			wordMean: wordMean,
+			sentenceDiff: sentenceDiff,
 		});
 
 		const updateChar = async (i: number) => {
