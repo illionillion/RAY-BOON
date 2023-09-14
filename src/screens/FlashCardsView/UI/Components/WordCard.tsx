@@ -8,6 +8,13 @@ import { APIKeyState } from '../../../../atom/APIKeyState';
 import type { WordDef } from '../../../../atom/FlashCardsDataState';
 import type { generateExampleReturn } from '../../../../lib/createExample';
 import { generateExample } from '../../../../lib/createExample';
+import { ExampleScentence } from './ExampleScentence';
+
+// プレビューと例文のセットの型
+interface Examples {
+  preview: string
+  example: string
+}
 
 interface WordCardProps {
   item: WordDef;
@@ -23,9 +30,15 @@ export const WordCard: FC<WordCardProps> = ({
   const [wordName, setWordName] = useState<string>(name);
   const [wordMean, setWordMean] = useState<string>(mean);
   const [wordLang, setWordLang] = useState<string>(lang);
-  const [wordExample, setWordExample] = useState<string>(example);
-  const [wordExamplePreview, setWordExamplePreview] = useState<string>(example);
-  const [loading, setLoading] = useState<boolean>(false);
+  // const [wordExamples, setWordExamples] = useState<string[]>([example]);
+  // const [wordExamplePreviews, setWordExamplePreviews] = useState<string[]>([example]);
+  const [wordExamples, setWordExamples] = useState<Examples[]>([
+    { preview: example, example: example },
+    { preview: '', example: '' },
+    { preview: '', example: '' }
+  ]);
+  const [selectedindex, setSelectedIndex] = useState<number>(0); // 選択された例文のインデックス
+  const [loading, setLoading] = useState<boolean[]>([false, false, false]);
   const apiKey = useRecoilValue(APIKeyState);
   const handleNameChanged = (text: string) => {
     setWordName(text);
@@ -36,11 +49,37 @@ export const WordCard: FC<WordCardProps> = ({
   const handleLangChanged = (text: string) => {
     setWordLang(text);
   };
-  const handleExampleChanged = (text: string) => {
-    setWordExample(text);
+
+  // // 指定した index の例文テキストを変更します
+  const handleExampleChanged = (text: string, index: number) => {
+    // setWordExamples((prev) => prev.map((item, i) => i === index ? text : item));
+    setWordExamples((prev) => {
+      const newWordExamples = [...prev];
+      newWordExamples[index].example = text;
+      return newWordExamples;
+    }
+    );
   };
 
+  // // 指定した index の例文プレビューを変更します
+  const handleExamplePreviewChanged = (text: string, index: number) => {
+    // setWordExamplePreviews((prev) => prev.map((item, i) => i === index ? text : item));
+    setWordExamples((prev) => {
+      const newWordExamplePreviews = [...prev];
+      newWordExamplePreviews[index].preview = text;
+      return newWordExamplePreviews;
+    }
+    );
+  };
+
+  // 指定した index の loading を変更します
+  const handleLoadingChanged = (value: boolean, index: number) => {
+    setLoading((prevloading) => prevloading.map((item, i) => i === index ? value : item));
+  };
+
+
   const upDateWord = () => {
+    const selectedWordExample = wordExamples[selectedindex].example;
     setWordsData((prev) =>
       prev.map((item) =>
         item.id === id
@@ -49,7 +88,7 @@ export const WordCard: FC<WordCardProps> = ({
             name: wordName,
             mean: wordMean,
             lang: wordLang,
-            example: wordExample,
+            example: selectedWordExample,
             proficiency: proficiency,
           }
           : item,
@@ -61,7 +100,7 @@ export const WordCard: FC<WordCardProps> = ({
     setWordsData((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleCreateExample = async () => {
+  const handleCreateExample = async (index: number) => {
     if ([wordName, wordMean, wordLang].includes('')) {
       const errorMessage =
         wordName === ''
@@ -77,9 +116,10 @@ export const WordCard: FC<WordCardProps> = ({
       return;
     }
 
-    setLoading(true);
+    handleLoadingChanged(true, index);
 
     // ここでChatGPTに送信したい
+
     const result = await generateExample({
       apiKey: apiKey,
       wordLang: wordLang,
@@ -88,13 +128,16 @@ export const WordCard: FC<WordCardProps> = ({
     });
 
     const updateChar = async (i: number) => {
+      // console.log('wordExamplePreviews[index] + char: ', wordExamplePreviews[index] + result.content[i]);
       return new Promise<void>((resolve) => {
         setTimeout(() => {
           const char = result.content[i];
           if (i === 0) {
-            setWordExamplePreview(() => char);
+            // previewを更新
+            handleExamplePreviewChanged(char, index);
           } else {
-            setWordExamplePreview((prev) => prev + char);
+            // previewを更新
+            handleExamplePreviewChanged(wordExamples[index].preview + char, index);
           }
           resolve();
         }, 100);
@@ -102,20 +145,20 @@ export const WordCard: FC<WordCardProps> = ({
     };
 
     if (result.success) {
-      setWordExample(() => result.content);
+      // exampleを更新
+      handleExampleChanged(result.content, index);
       for (let i = 0; i < result.content.length; i++) {
         await updateChar(i);
       }
     } else {
       OpenCreateExampleErrorMessage(result);
     }
-
-    setLoading(false);
+    handleLoadingChanged(false, index);
   };
 
   useEffect(() => {
     upDateWord();
-  }, [wordName, wordMean, wordLang, wordExample]);
+  }, [wordName, wordMean, wordLang, wordExamples]);
 
   return (
     <View style={styles.WordCard}>
@@ -142,20 +185,29 @@ export const WordCard: FC<WordCardProps> = ({
         />
         <TouchableOpacity
           style={{ ...styles.text, ...styles.createExample }}
-          disabled={loading}
-          onPress={handleCreateExample}
+          disabled={loading[0] || loading[1] || loading[2]}
+          onPress={() => {
+            handleCreateExample(0);
+            handleCreateExample(1);
+            handleCreateExample(2);
+          }}
         >
           <Text style={styles.createExampleText}>例文作成</Text>
         </TouchableOpacity>
       </View>
-      <TextInput
-        multiline
-        style={styles.textMulti}
-        value={loading ? wordExamplePreview : wordExample} // ここの値をChatGPTでリアルタイムに更新
-        placeholder="例文"
-        editable={!loading}
-        onChangeText={handleExampleChanged}
-      />
+      {/* 例文コンポーネントの表示 */}
+      {
+        wordExamples.map((_, index) => (
+          <ExampleScentence
+            key={index}
+            index={index}
+            loading={loading[index]}
+            wordExample={wordExamples[index].example}
+            wordExamplePreview={wordExamples[index].preview}
+            handleExampleChanged={handleExampleChanged}
+          />))
+      }
+
       <TouchableOpacity style={styles.remove} onPress={handleRemove}>
         <Ionicons name="close" size={20} />
       </TouchableOpacity>
@@ -167,7 +219,7 @@ const styles = StyleSheet.create({
   WordCard: {
     flex: 1,
     width: '80%',
-    height: 225,
+    // height: 225,
     backgroundColor: '#D9D9D9',
     marginVertical: 22,
     marginHorizontal: '10%',
